@@ -78,6 +78,8 @@ graph TD
     E -->|Mode B: Floating Bar / Ctrl+Q| G[Snaps Fluent acrylic bar -> Arrow keys navigate -> Enter instantly switches]
 ```
 
+![WindPath Overview and Workflow](imgs/Image_index.webp)
+
 ---
 
 ## 2. System Requirements & Runtime Environment
@@ -129,6 +131,8 @@ WindPath is distributed as a completely portable, standalone single-file binary:
   If you have already started browsing or modifying the directory within the dialog, WindPath will not re-inject or overwrite your active navigation.
 
 ### 4.2 Modern Fluent Floating Bar
+
+![Modern Fluent Floating Bar](imgs/detail_en.webp)
 
 - **Visual Design**:
   Employs native Windows 11 Mica and Acrylic blur with smooth rounded corners and adjustable opacity (40% to 100%).
@@ -307,6 +311,8 @@ Development and productivity software (such as VS Code, Cursor, IntelliJ IDEA, G
 
 The Settings Center utilizes a modern Fluent **four-tab** card layout (freely toggle between "General Preferences", "Tab Utility", "Taskbar Monitor" and "Managers" at the top):
 
+![WindPath Settings Center](imgs/settings_en.webp)
+
 #### "General Preferences" Tab
 
 1. **Smart AutoSwitch**
@@ -349,7 +355,7 @@ The Settings Center utilizes a modern Fluent **four-tab** card layout (freely to
 
 #### "Taskbar Monitor" Tab (New in Ver 1.1.0)
 
-![hardwareMonitor](https://raw.githubusercontent.com/clhome/WindPath/main/Document/imgs/hardwareMonitor.webp)
+![Taskbar Hardware Status Monitor and Tooltip](imgs/hardwareMonitor_en.webp)
 
 1. **Hardware Monitor Master Switch**: Easily enable or completely disable taskbar hardware monitoring. When turned off, the background worker thread exits immediately with zero resource usage;
 2. **Dock Position**: Radio buttons for selecting placement:

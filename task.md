@@ -32,9 +32,9 @@
   - [x] 7.1 运行全局残留扫描，确保无未处理的旧名称
   - [x] 7.2 运行 `cargo check` 和 `cargo test` 确保所有 254+ 单元测试 100% 通过
   - [x] 7.3 清理临时生成的探测排查文件
-- [ ] 8. 用户详细使用说明书更新 (User Manual)
-  - [ ] 8.1 更新 `Document/User_Manual_CN.md` 为 WindPath（御风路径）并添加品牌过渡说明
-  - [ ] 8.2 更新 `Document/User_Manual_EN.md` 为 WindPath 并同步更新所有安装、配置与 FAQ 说明
+- [x] 8. 用户详细使用说明书更新 (User Manual)
+  - [x] 8.1 更新 `Document/User_Manual_CN.md` 为 WindPath（御风路径）并添加品牌过渡说明与对应配图
+  - [x] 8.2 更新 `Document/User_Manual_EN.md` 为 WindPath 并同步更新所有安装、配置与 FAQ 说明与对应英文配图
 - [x] 9. 硬件看板网速展示优化
   - [x] 9.1 修改 `src/monitor/window/tooltip.rs`，移除看板网速中的 MB/s 显示
   - [x] 9.2 更新单元测试断言

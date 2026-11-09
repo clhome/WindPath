@@ -76,6 +76,8 @@ graph TD
     E -->|模式 B: 悬浮吸附栏 / Ctrl+Q| G[弹出 Fluent 磨砂吸附层 -> 上下键快速选定 -> Enter 一键瞬间穿梭]
 ```
 
+![WindPath 概览与应用场景](imgs/Image_index.webp)
+
 ---
 
 ## 2. 系统要求与运行环境
@@ -127,6 +129,8 @@ WindPath 为完全绿色的免安装单文件应用程序：
   如果用户已经开始在对话框中点选了其他目录，或者已输入定制路径，WindPath 将自动进行防误触锁止，绝不暴力覆盖已修改的路径。
 
 ### 4.2 现代 Fluent 悬浮吸附条 (Floating Bar)
+
+![现代 Fluent 悬浮吸附条交互](imgs/detail.webp)
 
 - **视觉特性**：
   采用 Windows 11 原生 Mica / 亚克力（Acrylic）磨砂材质与精致平滑圆角，具备多级半透明度调节（40% ~ 100%）。
@@ -305,6 +309,8 @@ WindPath **Ver 1.2.0** 深度解构并纯 Rust 原生实现了全新的**资源�
 
 设置中心采用现代 Fluent **四选项卡**卡片式布局（可在顶部自由切换「常规偏好」、「多标签增强」、「任务栏监控」与「管理器联动」选项卡）：
 
+![WindPath 图形化设置中心](imgs/settings.webp)
+
 #### 「常规偏好」选项卡
 
 1. **自动秒切 (AutoSwitch)**
@@ -349,7 +355,7 @@ WindPath **Ver 1.2.0** 深度解构并纯 Rust 原生实现了全新的**资源�
 
 #### 「任务栏监控」选项卡 (Ver 1.1.0 之后新增)
 
-![hardwareMonitor](https://raw.githubusercontent.com/clhome/WindPath/main/Document/imgs/hardwareMonitor.webp)
+![任务栏硬件状态监控面板与悬浮详情看板](imgs/hardwareMonitor.webp)
 
 1. **状态监控总开关**：一键启用或彻底停用任务栏硬件监控模块。停用时后台采集线程完全退出，零额外资源消耗；
 2. **任务栏停靠位置**：提供单选切换：
