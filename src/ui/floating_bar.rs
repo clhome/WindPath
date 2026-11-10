@@ -64,6 +64,7 @@ pub struct FloatingBarState {
     pub padding: i32,
     pub opacity: u8,
     pub language: Language,
+    pub hotkey: String,
     pub producer_rect: RECT,
     pub is_producer_hovered: bool,
     /// 顶栏的「显式获取第三方管理器当前路径」按钮（审计报告 U-01）。
@@ -198,6 +199,7 @@ impl FloatingBar {
                 padding: 10,
                 opacity: 88,
                 language: Language::Auto,
+                hotkey: "Ctrl+Q".to_string(),
                 producer_rect: RECT::default(),
                 is_producer_hovered: false,
                 probe_buttons: [ProbeButton::hidden(), ProbeButton::hidden()],
@@ -234,6 +236,7 @@ impl FloatingBar {
         language: Language,
         kind: DialogKind,
         probe_targets: [Option<TriggerSnapshot>; 2],
+        hotkey: &str,
     ) {
         if candidates.is_empty() {
             self.hide();
@@ -242,6 +245,7 @@ impl FloatingBar {
 
         self.state.opacity = opacity;
         self.state.language = language;
+        self.state.hotkey = hotkey.to_string();
         self.set_opacity(opacity);
 
         // 1. 获取对话框所在物理显示器的精确物理 DPI（通过 MonitorFromWindow + GetDpiForMonitor 直接获取目标屏 DPI）
@@ -355,6 +359,16 @@ impl FloatingBar {
         unsafe {
             let _ = ShowWindow(self.state.hwnd, SW_HIDE);
         }
+    }
+
+    /// 查询悬浮吸附条当前是否在屏幕上处于显示状态
+    pub fn is_visible(&self) -> bool {
+        unsafe { windows::Win32::UI::WindowsAndMessaging::IsWindowVisible(self.state.hwnd).as_bool() }
+    }
+
+    /// 更新当前配置的快捷键
+    pub fn set_hotkey(&mut self, hotkey: &str) {
+        self.state.hotkey = hotkey.to_string();
     }
 
     /// 重新绘制（探测开始 / 结束等外部状态变化后由宿主调用）。
@@ -771,7 +785,7 @@ unsafe fn render_floating_bar(hwnd: HWND, hdc: HDC) {
         };
         SelectObject(hdc, HGDIOBJ(font_header.0 as _));
         SetTextColor(hdc, COLORREF(0x00e0e0e0));
-        let title_text = I18n::floating_title(&state.language);
+        let title_text = I18n::floating_title(&state.language, &state.hotkey);
         let mut title_buf: Vec<u16> = title_text.encode_utf16().collect();
         DrawTextW(
             hdc,

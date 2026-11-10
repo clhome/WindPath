@@ -497,8 +497,10 @@ impl I18n {
     // 高层兼容 API 保持原样，直接读取 TOML 配置
     // ==========================================
 
-    pub fn floating_title(lang: &Language) -> &str {
-        &Self::get_bundle(lang).floating_bar.title
+    pub fn floating_title(lang: &Language, hotkey: &str) -> String {
+        let raw = &Self::get_bundle(lang).floating_bar.title;
+        let hotkey_disp = crate::win32::hotkey::format_hotkey_compact(hotkey);
+        raw.replace("{hotkey}", &hotkey_disp)
     }
 
     pub fn floating_producer(lang: &Language) -> &str {
@@ -749,6 +751,27 @@ impl I18n {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_floating_title_i18n_hotkey_injection() {
+        let zh_title = I18n::floating_title(&Language::ZhCN, "Ctrl+Q");
+        assert_eq!(
+            zh_title,
+            "WindPath 路径跳转 (Ctrl+Q 切换显示 · ↑↓ 键选择 · Enter 确认)"
+        );
+
+        let zh_title_custom = I18n::floating_title(&Language::ZhCN, "alt+shift+w");
+        assert_eq!(
+            zh_title_custom,
+            "WindPath 路径跳转 (Alt+Shift+W 切换显示 · ↑↓ 键选择 · Enter 确认)"
+        );
+
+        let en_title = I18n::floating_title(&Language::EnUS, "Ctrl+Q");
+        assert_eq!(en_title, "WindPath (Ctrl+Q Toggle · ↑↓ Select · Enter)");
+
+        let en_title_custom = I18n::floating_title(&Language::EnUS, "alt + q");
+        assert_eq!(en_title_custom, "WindPath (Alt+Q Toggle · ↑↓ Select · Enter)");
+    }
 
     #[test]
     fn test_floating_producer_i18n() {

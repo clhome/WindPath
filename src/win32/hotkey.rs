@@ -58,8 +58,7 @@ pub fn parse_hotkey(hotkey_str: &str) -> Option<(HOT_KEY_MODIFIERS, u32)> {
     key_code.map(|vk| (HOT_KEY_MODIFIERS(modifiers), vk))
 }
 
-/// 格式化快捷键展示字符串，如将 "ctrl+q" 标准化为 "Ctrl + Q"
-pub fn format_hotkey_display(hotkey_str: &str) -> String {
+fn parse_hotkey_tokens(hotkey_str: &str) -> Vec<String> {
     let parts: Vec<&str> = hotkey_str
         .split(['+', '-', ' '])
         .map(|s| s.trim())
@@ -67,7 +66,7 @@ pub fn format_hotkey_display(hotkey_str: &str) -> String {
         .collect();
 
     if parts.is_empty() {
-        return "Ctrl + Q".to_string();
+        return vec!["Ctrl".to_string(), "Q".to_string()];
     }
 
     let mut result_parts = Vec::new();
@@ -105,10 +104,20 @@ pub fn format_hotkey_display(hotkey_str: &str) -> String {
     if !main_key.is_empty() {
         result_parts.push(main_key);
     } else if result_parts.is_empty() {
-        return "Ctrl + Q".to_string();
+        return vec!["Ctrl".to_string(), "Q".to_string()];
     }
 
-    result_parts.join(" + ")
+    result_parts
+}
+
+/// 格式化快捷键展示字符串，如将 "ctrl+q" 标准化为 "Ctrl + Q"
+pub fn format_hotkey_display(hotkey_str: &str) -> String {
+    parse_hotkey_tokens(hotkey_str).join(" + ")
+}
+
+/// 紧凑格式化快捷键展示字符串，如将 "ctrl+q" 标准化为 "Ctrl+Q"
+pub fn format_hotkey_compact(hotkey_str: &str) -> String {
+    parse_hotkey_tokens(hotkey_str).join("+")
 }
 
 /// 从键盘事件虚拟键值转换为主键名称与是否为修饰键
@@ -181,5 +190,24 @@ pub fn register_global_hotkey(hwnd: HWND, id: i32, hotkey_str: &str) -> bool {
         } else {
             false
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_hotkey_compact() {
+        assert_eq!(format_hotkey_compact("ctrl+q"), "Ctrl+Q");
+        assert_eq!(format_hotkey_compact("ctrl + q"), "Ctrl+Q");
+        assert_eq!(format_hotkey_compact("Alt+Shift+Q"), "Alt+Shift+Q");
+        assert_eq!(format_hotkey_compact(""), "Ctrl+Q");
+    }
+
+    #[test]
+    fn test_format_hotkey_display() {
+        assert_eq!(format_hotkey_display("ctrl+q"), "Ctrl + Q");
+        assert_eq!(format_hotkey_display("Alt+Shift+Q"), "Alt + Shift + Q");
     }
 }

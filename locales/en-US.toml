@@ -3,7 +3,7 @@ code = "en-US"
 name = "English (en-US)"
 
 [floating_bar]
-title = "WindPath (Click · ↑↓ Select, Enter)"
+title = "WindPath ({hotkey} Toggle · ↑↓ Select · Enter)"
 producer = "Produced by Quzhou Yufeng Technology Co., Ltd."
 tag_explorer = "Explorer"
 tag_history = "History"

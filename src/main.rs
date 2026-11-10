@@ -449,6 +449,7 @@ unsafe extern "system" fn host_wnd_proc(
                                 state.config.language.clone(),
                                 dlg_info.kind,
                                 probe_targets,
+                                &state.config.hotkey,
                             );
                         }
                     }
@@ -839,6 +840,7 @@ fn on_foreground_window_changed_impl(state: &mut AppState, fg_hwnd: HWND, retry_
                 state.config.language.clone(),
                 dlg_info.kind,
                 probe_targets,
+                &state.config.hotkey,
             );
         } else {
             crate::dialog::detector::log_debug(
@@ -1166,6 +1168,12 @@ fn launch_native_explorer_window() {
 fn on_hotkey_triggered(state: &mut AppState) {
     let fg_hwnd = get_active_foreground_window();
     if let Some(dlg_info) = detect_file_dialog(fg_hwnd) {
+        if let Some(bar) = &mut state.floating_bar {
+            if bar.is_visible() && bar.target_dialog().map(|(d, _, _)| d) == Some(dlg_info.hwnd) {
+                bar.hide();
+                return;
+            }
+        }
         let candidates = state.tracker.get_all_candidates(&state.config);
         let probe_targets = managers::explicit_probe::bar_probe_targets(
             dlg_info.hwnd.0 as usize,
@@ -1182,6 +1190,7 @@ fn on_hotkey_triggered(state: &mut AppState) {
                 state.config.language.clone(),
                 dlg_info.kind,
                 probe_targets,
+                &state.config.hotkey,
             );
         }
     }
@@ -1439,6 +1448,12 @@ pub fn update_global_config(new_config: AppConfig) {
                 let h = HWND(host_ptr);
                 let _ = win32::hotkey::register_global_hotkey(h, HOTKEY_ID, &new_config.hotkey);
             }
+            if let Some(bar) = &mut state.floating_bar {
+                bar.set_hotkey(&new_config.hotkey);
+                if bar.is_visible() {
+                    bar.invalidate();
+                }
+            }
         }
     });
 }
@@ -1518,6 +1533,21 @@ mod tests {
         // 可再次安装并访问（幂等）
         install_state();
         assert!(with_state(|state| state.manager_scan_generation).is_some());
+
+        reset_state();
+    }
+
+    #[test]
+    fn update_global_config_syncs_hotkey() {
+        reset_state();
+        install_state();
+
+        let mut new_cfg = AppConfig::default();
+        new_cfg.hotkey = "Alt+Shift+Z".to_string();
+        update_global_config(new_cfg);
+
+        let current_hotkey = with_state(|state| state.config.hotkey.clone());
+        assert_eq!(current_hotkey.as_deref(), Some("Alt+Shift+Z"));
 
         reset_state();
     }

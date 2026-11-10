@@ -67,6 +67,15 @@
   - [x] 15.1 更新 `packaging/msi/windpath.wxs`：在 `<Product>` 添加 `Codepage="936"`，在 `<Package>` 添加 `SummaryCodepage="936"` 适配中文环境
   - [x] 15.2 更新 `packaging/msi/build-msi.ps1`：优化 WiX v3 临时编译对象前缀为 `windpath_wix_*`
   - [x] 15.3 检查确保修改文件保持 UTF-8 无 BOM 与 LF 换行规范
+- [x] 16. 优化路径跳转悬浮窗快捷键提示与显隐交互
+  - [x] 16.1 更新语言包 `locales/zh-CN.toml` 与 `locales/en-US.toml`，引入 `{hotkey}` 动态快捷键占位符并精修专业文案
+  - [x] 16.2 扩展 hotkey 模块，提供紧凑型规范化快捷键展示 `format_hotkey_compact`
+  - [x] 16.3 改造 `I18n::floating_title` 支持动态快捷键参数替换
+  - [x] 16.4 改造 `FloatingBarState` 与 `FloatingBar`，支持保存并动态刷新 hotkey，支持可见性检查
+  - [x] 16.5 优化 `on_hotkey_triggered` 支持快捷键显示/隐藏切换（Toggle）
+  - [x] 16.6 在 `update_global_config` 中联动更新悬浮条快捷键与即时重绘
+  - [x] 16.7 编写单元测试验证动态快捷键替换与多语言呈现，运行全量测试验证
+
 
 
 
