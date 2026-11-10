@@ -1168,11 +1168,12 @@ fn launch_native_explorer_window() {
 fn on_hotkey_triggered(state: &mut AppState) {
     let fg_hwnd = get_active_foreground_window();
     if let Some(dlg_info) = detect_file_dialog(fg_hwnd) {
-        if let Some(bar) = &mut state.floating_bar {
-            if bar.is_visible() && bar.target_dialog().map(|(d, _, _)| d) == Some(dlg_info.hwnd) {
-                bar.hide();
-                return;
-            }
+        if let Some(bar) = &mut state.floating_bar
+            && bar.is_visible()
+            && bar.target_dialog().map(|(d, _, _)| d) == Some(dlg_info.hwnd)
+        {
+            bar.hide();
+            return;
         }
         let candidates = state.tracker.get_all_candidates(&state.config);
         let probe_targets = managers::explicit_probe::bar_probe_targets(
@@ -1542,8 +1543,10 @@ mod tests {
         reset_state();
         install_state();
 
-        let mut new_cfg = AppConfig::default();
-        new_cfg.hotkey = "Alt+Shift+Z".to_string();
+        let new_cfg = AppConfig {
+            hotkey: "Alt+Shift+Z".to_string(),
+            ..Default::default()
+        };
         update_global_config(new_cfg);
 
         let current_hotkey = with_state(|state| state.config.hotkey.clone());
