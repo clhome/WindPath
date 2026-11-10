@@ -770,7 +770,10 @@ mod tests {
         assert_eq!(en_title, "WindPath (Ctrl+Q Toggle · ↑↓ Select · Enter)");
 
         let en_title_custom = I18n::floating_title(&Language::EnUS, "alt + q");
-        assert_eq!(en_title_custom, "WindPath (Alt+Q Toggle · ↑↓ Select · Enter)");
+        assert_eq!(
+            en_title_custom,
+            "WindPath (Alt+Q Toggle · ↑↓ Select · Enter)"
+        );
     }
 
     #[test]

@@ -363,7 +363,9 @@ impl FloatingBar {
 
     /// 查询悬浮吸附条当前是否在屏幕上处于显示状态
     pub fn is_visible(&self) -> bool {
-        unsafe { windows::Win32::UI::WindowsAndMessaging::IsWindowVisible(self.state.hwnd).as_bool() }
+        unsafe {
+            windows::Win32::UI::WindowsAndMessaging::IsWindowVisible(self.state.hwnd).as_bool()
+        }
     }
 
     /// 更新当前配置的快捷键

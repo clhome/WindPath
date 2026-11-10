@@ -1,0 +1,35 @@
+#!/bin/sh
+# Git pre-commit hook: 提交前自动执行 cargo fmt
+# 仅当暂存区包含 .rs 文件时触发，确保提交内容 100% 符合 rustfmt 门禁
+
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "[pre-commit] 警告: 未找到 cargo 命令，跳过自动格式化。"
+    exit 0
+fi
+
+# 获取暂存区中所有新增/修改的 .rs 文件
+RUST_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.rs$')
+
+if [ -z "$RUST_FILES" ]; then
+    exit 0
+fi
+
+echo "[pre-commit] 检测到 Rust 代码变更，正在执行 cargo fmt..."
+cargo fmt --all
+
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+    echo "[pre-commit] 错误: cargo fmt 执行失败，已阻止本次提交。"
+    exit $STATUS
+fi
+
+# 将暂存区中的 Rust 文件重新添加到暂存区，确保格式化结果并入本次 commit
+for file in $RUST_FILES; do
+    if [ -f "$file" ]; then
+        git add "$file"
+    fi
+done
+
+echo "[pre-commit] 格式对齐完成。"
+exit 0
+

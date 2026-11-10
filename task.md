@@ -48,6 +48,14 @@
   - [x] 11.1 从 `locales/zh-CN.toml` 与 `locales/en-US.toml` 中移除 `subtitle`
   - [x] 11.2 从 `src/ui/settings.rs` 中移除设置中心副标题的绘制逻辑，并优化主标题上下居中对齐
   - [x] 11.3 运行全量单元测试与编译检查验证
+- [x] 12. 落地方案1：编辑器保存自动格式化与代码库格式修正
+  - [x] 12.1 创建 `.vscode/settings.json` 配置 `editor.formatOnSave` 与 `rust-analyzer` 格式化器
+  - [x] 12.2 执行 `cargo fmt --all` 修正现有未格式化文件
+  - [x] 12.3 执行 `cargo fmt --all -- --check` 验证门禁 100% 通过
+- [x] 13. 落地方案2：配置 Git pre-commit Hook
+  - [x] 13.1 创建 `.githooks/pre-commit` 自动格式化脚本（仅针对已暂存的 Rust 文件）
+  - [x] 13.2 配置本地 Git 指向 `core.hooksPath = .githooks`
+  - [x] 13.3 验证 Hook 触发逻辑与自动格式化效果
 - [x] 12. 点击日志路径支持直接打开查看
   - [x] 12.1 在 `src/dialog/detector.rs` 中实现 `open_debug_log()`，处理文件预检/自动创建及打开与回退逻辑
   - [x] 12.2 在 `src/ui/settings.rs` 的点击事件中对接 `HOVER_ID_LOG_CARD` 处理
