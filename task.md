@@ -83,6 +83,12 @@
   - [x] 16.5 优化 `on_hotkey_triggered` 支持快捷键显示/隐藏切换（Toggle）
   - [x] 16.6 在 `update_global_config` 中联动更新悬浮条快捷键与即时重绘
   - [x] 16.7 编写单元测试验证动态快捷键替换与多语言呈现，运行全量测试验证
+- [x] 17. 修复微软商店 (MSIX) 版本开机静默自启失效问题
+  - [x] 17.1 在 `Cargo.toml` 为 `windows` crate 添加 `"ApplicationModel"` 与 `"Foundation"` 特性支持
+  - [x] 17.2 在 `src/win32/autostart.rs` 中实现基于 WinRT `StartupTask` API 的包身份自启动管理与查询
+  - [x] 17.3 在 `set_autostart` 与 `is_autostart_enabled` 中通过 `is_packaged()` 实现自动分流与状态同步
+  - [x] 17.4 编写针对不同环境分流与自启状态处理的单元测试
+  - [x] 17.5 运行 `cargo check` 与 `cargo test` 进行全量编译和回归验证
 
 
 

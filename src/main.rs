@@ -198,15 +198,27 @@ fn main() {
         let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         crate::win32::icon::ensure_gdiplus();
 
-        let config = AppConfig::load();
+        let mut config = AppConfig::load();
+
+        // 在 MSIX 商店打包环境下，与系统真实的 StartupTask 状态进行对齐同步
+        if win32::package::is_packaged() {
+            let real_enabled = win32::autostart::is_autostart_enabled();
+            if config.autostart_enabled != real_enabled {
+                config.autostart_enabled = real_enabled;
+                let _ = config.save();
+            }
+        }
 
         // 异步同步自启动设置，杜绝阻塞主线程 UI 初始化
-        if config.autostart_enabled {
-            let use_sched = config.autostart_task_scheduler;
-            thread::spawn(move || {
+        let autostart_enabled = config.autostart_enabled;
+        let use_sched = config.autostart_task_scheduler;
+        thread::spawn(move || {
+            if win32::package::is_packaged() {
+                let _ = set_autostart(autostart_enabled, false);
+            } else if autostart_enabled {
                 let _ = set_autostart(true, use_sched);
-            });
-        }
+            }
+        });
 
         // 3. 注册主事件接收宿主隐藏窗口
         let class_name = w!("WindPath_Host_Class");

@@ -347,8 +347,11 @@ impl SettingsWindow {
         }
     }
 
-    pub fn show(&self, current: AppConfig) {
+    pub fn show(&self, mut current: AppConfig) {
         crate::dialog::detector::set_debug_mode_enabled(false);
+        if crate::win32::package::is_packaged() {
+            current.autostart_enabled = crate::win32::autostart::is_autostart_enabled();
+        }
         set_draft_config(current);
         IS_RECORDING_HOTKEY.store(false, Ordering::SeqCst);
         IS_DROPDOWN_OPEN.store(false, Ordering::SeqCst);

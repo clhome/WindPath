@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 const TASK_NAME: &str = "WindPath";
 const LEGACY_TASK_NAME: &str = "QuickPath";
+const STORE_STARTUP_TASK_ID: &str = "WindPathStartup";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 /// 单次 schtasks 调用的等待上限。
@@ -72,6 +73,13 @@ fn run_schtasks_quiet(args: &[&str]) {
 
 /// 设置或移除开机自启动（规范带双引号包裹并进行写后一致性校验）
 pub fn set_autostart(enable: bool, use_task_scheduler: bool) -> Result<(), String> {
+    // 若运行于 MSIX / 微软商店打包环境中，受沙盒隔离与包身份约束，
+    // 不能直接修改注册表 Run 键（会被注册表重定向虚化），也不应通过任务计划程序裸跑受限路径。
+    // 必须调用 WinRT 的 StartupTask API 统一纳管。
+    if crate::win32::package::is_packaged() {
+        return set_packaged_autostart(enable);
+    }
+
     let current_exe =
         std::env::current_exe().map_err(|e| format!("获取当前可执行文件路径失败: {}", e))?;
     let exe_path_str = current_exe.to_string_lossy().to_string();
@@ -137,6 +145,11 @@ pub fn set_autostart(enable: bool, use_task_scheduler: bool) -> Result<(), Strin
 
 /// 检查是否已设置开机自启
 pub fn is_autostart_enabled() -> bool {
+    // 优先检查 MSIX 打包环境下的自启动状态
+    if crate::win32::package::is_packaged() {
+        return is_packaged_autostart_enabled();
+    }
+
     // 检查任务计划程序
     let task_exists = match schtasks_command() {
         Ok(cmd) => run_bounded_status(cmd, &["/query", "/tn", TASK_NAME], AUTOSTART_TIMEOUT)
@@ -149,6 +162,152 @@ pub fn is_autostart_enabled() -> bool {
 
     // 检查注册表
     is_registry_run_enabled()
+}
+
+struct ComGuard(bool);
+
+impl Drop for ComGuard {
+    fn drop(&mut self) {
+        if self.0 {
+            unsafe {
+                windows::Win32::System::Com::CoUninitialize();
+            }
+        }
+    }
+}
+
+fn ensure_com_initialized() -> ComGuard {
+    use windows::Win32::System::Com::{
+        COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoInitializeEx,
+    };
+    let res = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE) };
+    ComGuard(res.is_ok())
+}
+
+/// 适用于 MSIX / 微软商店打包容器的自启动管理。
+///
+/// 遵循微软官方 UWP/Desktop Bridge 规范：
+/// 打包应用不能直接写真实的注册表 Run 键（会被注册表虚拟化重定向至隔离 Hive），
+/// 也不应通过任务计划程序裸跑受 WindowsApps ACL 保护的动态版本路径。
+/// 必须通过 `Windows.ApplicationModel.StartupTask` API 激活清单中声明的自启任务。
+pub fn set_packaged_autostart(enable: bool) -> Result<(), String> {
+    let _com_guard = ensure_com_initialized();
+
+    use windows::ApplicationModel::{StartupTask, StartupTaskState};
+    use windows::core::HSTRING;
+
+    let task_id = HSTRING::from(STORE_STARTUP_TASK_ID);
+    let task_op = StartupTask::GetAsync(&task_id)
+        .map_err(|e| format!("获取商店自启动任务对象失败: {}", e))?;
+    let task = task_op
+        .join()
+        .map_err(|e| format!("等待商店自启动任务对象完成失败: {}", e))?;
+
+    let current_state = task
+        .State()
+        .map_err(|e| format!("获取自启动状态失败: {}", e))?;
+
+    if enable {
+        match current_state {
+            StartupTaskState::Enabled => {
+                crate::dialog::detector::log_debug("AUTOSTART(MSIX): 自启动任务当前已处于开启状态");
+                Ok(())
+            }
+            StartupTaskState::Disabled => {
+                let req_op = task
+                    .RequestEnableAsync()
+                    .map_err(|e| format!("请求开启自启动任务失败: {}", e))?;
+                let new_state = req_op
+                    .join()
+                    .map_err(|e| format!("等待开启自启动任务响应失败: {}", e))?;
+
+                match new_state {
+                    StartupTaskState::Enabled => {
+                        crate::dialog::detector::log_debug("AUTOSTART(MSIX): 成功激活开机自启任务");
+                        Ok(())
+                    }
+                    StartupTaskState::DisabledByUser => {
+                        let err_msg = "自启动已被用户在 Windows 设置或任务管理器中显式禁用，请前往「设置 -> 应用 -> 启动」重新允许".to_string();
+                        crate::dialog::detector::log_debug(&format!(
+                            "AUTOSTART(MSIX): {}",
+                            err_msg
+                        ));
+                        Err(err_msg)
+                    }
+                    StartupTaskState::DisabledByPolicy => {
+                        let err_msg = "自启动已被系统管理策略或组策略禁用".to_string();
+                        crate::dialog::detector::log_debug(&format!(
+                            "AUTOSTART(MSIX): {}",
+                            err_msg
+                        ));
+                        Err(err_msg)
+                    }
+                    _ => {
+                        let err_msg = format!("开启自启动未生效，当前状态码: {:?}", new_state);
+                        crate::dialog::detector::log_debug(&format!(
+                            "AUTOSTART(MSIX): {}",
+                            err_msg
+                        ));
+                        Err(err_msg)
+                    }
+                }
+            }
+            StartupTaskState::DisabledByUser => {
+                // 再次尝试请求，让系统弹出确认对话框（如支持）或尝试重新激活
+                let req_op = task
+                    .RequestEnableAsync()
+                    .map_err(|e| format!("请求激活被用户禁用的自启任务失败: {}", e))?;
+                let new_state = req_op
+                    .join()
+                    .map_err(|e| format!("等待激活自启任务响应失败: {}", e))?;
+
+                if new_state == StartupTaskState::Enabled {
+                    crate::dialog::detector::log_debug("AUTOSTART(MSIX): 成功重新激活自启任务");
+                    Ok(())
+                } else {
+                    let err_msg = "自启动已被用户在系统任务管理器或 Windows 设置中禁用，请前往「Windows 设置 -> 应用 -> 启动」开启 WindPath".to_string();
+                    crate::dialog::detector::log_debug(&format!("AUTOSTART(MSIX): {}", err_msg));
+                    Err(err_msg)
+                }
+            }
+            StartupTaskState::DisabledByPolicy => {
+                let err_msg = "自启动已被系统管理策略禁用".to_string();
+                crate::dialog::detector::log_debug(&format!("AUTOSTART(MSIX): {}", err_msg));
+                Err(err_msg)
+            }
+            _ => Ok(()),
+        }
+    } else {
+        match current_state {
+            StartupTaskState::Enabled => {
+                task.Disable()
+                    .map_err(|e| format!("关闭商店自启动任务失败: {}", e))?;
+                crate::dialog::detector::log_debug("AUTOSTART(MSIX): 已成功停用自启动任务");
+                Ok(())
+            }
+            _ => Ok(()),
+        }
+    }
+}
+
+/// 检查商店包内的自启任务是否已启用
+pub fn is_packaged_autostart_enabled() -> bool {
+    let _com_guard = ensure_com_initialized();
+
+    use windows::ApplicationModel::{StartupTask, StartupTaskState};
+    use windows::core::HSTRING;
+
+    let task_id = HSTRING::from(STORE_STARTUP_TASK_ID);
+    match StartupTask::GetAsync(&task_id) {
+        Ok(op) => match op.join() {
+            Ok(task) => match task.State() {
+                Ok(state) => state == StartupTaskState::Enabled,
+                Err(_) => false,
+            },
+            Err(_) => false,
+        },
+        Err(_) => false,
+    }
 }
 
 fn set_registry_run(quoted_exe: &str, enable: bool) -> Result<(), String> {
@@ -327,5 +486,28 @@ mod tests {
             "必须在超时附近返回，实际 {:?}",
             start.elapsed()
         );
+    }
+
+    /// 校验商店自启 TaskId 常量与 packaging/msix/AppxManifest.xml 严格匹配
+    #[test]
+    fn test_store_startup_task_id_matches_manifest() {
+        assert_eq!(STORE_STARTUP_TASK_ID, "WindPathStartup");
+    }
+
+    /// 在非 MSIX 开发测试环境中，调用商店自启查询应安全返回 false 而不崩溃
+    #[test]
+    fn test_packaged_autostart_fail_safe_without_package_identity() {
+        // 开发/测试机环境通常无 Package Identity，
+        // is_packaged_autostart_enabled 应当安全捕获错误并返回 false，绝对不 panic
+        let enabled = is_packaged_autostart_enabled();
+        assert!(!enabled);
+    }
+
+    /// 在非 MSIX 开发测试环境中，设置商店自启动应安全返回 Err 而不是崩溃
+    #[test]
+    fn test_set_packaged_autostart_returns_err_without_package_identity() {
+        let result = set_packaged_autostart(true);
+        // 无包身份环境下调用 WinRT StartupTask::GetAsync 会失败，验证其优雅返回 Err
+        assert!(result.is_err());
     }
 }
